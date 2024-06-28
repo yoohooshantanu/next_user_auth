@@ -8,8 +8,7 @@ import google from "../public/google2.svg";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
-import bcrypt from 'bcryptjs';
-import crypto from 'crypto';
+
 import axios from "axios";
 
 const Login = () => {

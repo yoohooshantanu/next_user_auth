@@ -5,7 +5,6 @@
 import { useEffect, useState } from 'react';
 import { useRouter, useParams } from 'next/navigation';
 import axios from "axios";
-import bcrypt from "bcryptjs";
 
 const ResetPasswordPage = () => {
   const { resetToken } = useParams();
@@ -48,18 +47,23 @@ const ResetPasswordPage = () => {
       return;
     }
 
+    // Password validation
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    if (!passwordRegex.test(password)) {
+      setError("Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a digit, and a special character");
+      return;
+    }
+
     try {
-      const response = await axios.post("/api/changingpassword", { resetToken: resetToken,newPassword: password});
+      const response = await axios.post("/api/changingpassword", { resetToken: resetToken, newPassword: password });
 
-      const data = await response.data;
-
-      if (response.status === 200 ) {
+      if (response.status === 200) {
         setSuccess("Password reset successfully");
         setTimeout(() => {
           router.push('/'); 
         }, 2000);
       } else {
-        setError(data.error || "Failed to reset password");
+        setError("Failed to reset password");
       }
     } catch (error) {
       console.error('Error resetting password:', error);

@@ -24,24 +24,33 @@ const Signup = () => {
     const { name, value } = event.target;
     return setUser((prevInfo) => ({ ...prevInfo, [name]: value }));
   };
+
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     console.log(user);
     try {
       if (!user.name || !user.email || !user.password) {
-        setError("please fill all the fields");
+        setError("Please fill all the fields");
         return;
       }
       const emailRegex = /^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/;
       if (!emailRegex.test(user.email)) {
-        setError("invalid email id");
+        setError("Invalid email ID");
         return;
       }
+
+      // Password validation
+      const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+      if (!passwordRegex.test(user.password)) {
+        setError("Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a digit, and a special character");
+        return;
+      }
+
       const res = await axios.post("/api/register", user);
       console.log(res.data);
       if (res.status == 200 || res.status == 201) {
-        console.log("user added successfully");
+        console.log("User added successfully");
         setError("");
         router.push("/");
       }
@@ -58,6 +67,7 @@ const Signup = () => {
       });
     }
   };
+
   return (
     <div
       className="min-h-screen"
@@ -142,7 +152,7 @@ const Signup = () => {
                   <div className="border-b border-gray-800 py-2 w-full px-6" />
                 </div>
 
-                <div onClick={()=>signIn("google")} className="rounded px-6 py-2 shadow cursor-pointer bg-gray-50 grid place-items-center mx-auto mb-8">
+                <div onClick={() => signIn("google")} className="rounded px-6 py-2 shadow cursor-pointer bg-gray-50 grid place-items-center mx-auto mb-8">
                   <Image src={google} alt="bg" width={100} height={100} />
                 </div>{" "}
 
