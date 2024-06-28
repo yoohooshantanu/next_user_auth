@@ -9,17 +9,18 @@
     "lint": "next lint"
   },
   "dependencies": {
+    "@sendinblue/client": "^3.3.1",
     "axios": "^1.5.1",
     "bcryptjs": "^2.4.3",
     "lucide-react": "^0.284.0",
-    "mongoose": "^7.5.4",
-    "next": "13.5.4",
+    "next": "^14.2.4",
     "next-auth": "^4.23.2",
     "react": "^18",
     "react-dom": "^18"
   },
   "devDependencies": {
     "@types/bcryptjs": "^2.4.4",
+    "@types/mongoose": "^5.11.97",
     "@types/node": "^20",
     "@types/react": "^18",
     "@types/react-dom": "^18",

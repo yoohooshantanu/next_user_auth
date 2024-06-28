@@ -8,6 +8,9 @@ import google from "../public/google2.svg";
 import { useState } from "react";
 import { useRouter } from "next/navigation";
 import { signIn } from "next-auth/react";
+import bcrypt from 'bcryptjs';
+import crypto from 'crypto';
+import axios from "axios";
 
 const Login = () => {
   const [loading, setLoading] = useState(false);
@@ -20,20 +23,55 @@ const Login = () => {
 
   const handleInputChange = (event: any) => {
     const { name, value } = event.target;
-    return setUser((prevInfo) => ({ ...prevInfo, [name]: value }));
+    setUser((prevInfo) => ({ ...prevInfo, [name]: value }));
   };
+  const handleResetPassword = async (e: any) => {
+    e.preventDefault();
+    setLoading(true);
+    console.log(user);
+    try {
+      if ( !user.email ) {
+        setError("please enter email");
+        return;
+      }
+      const emailRegex = /^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/;
+      if (!emailRegex.test(user.email)) {
+        setError("invalid email id");
+        return;
+      }
+      const res = await axios.post("/api/reset-password", user);
+      console.log(res.data);
+      if (res.status == 200 || res.status == 201) {
+        console.log("redirected successfully");
+        setError("");
+        router.push("/reset-password");
+      }
+    } catch (error) {
+      console.log(error);
+      setError("");
+    } finally {
+      setLoading(false);
+
+      setUser({
+      
+        email: "",
+        password: "",
+      });
+    }
+  };
+
 
   const handleSubmit = async (e: any) => {
     e.preventDefault();
     setLoading(true);
     try {
       if (!user.email || !user.password) {
-        setError("please fill all the fields");
+        setError("Please fill in all fields");
         return;
       }
       const emailRegex = /^([a-zA-Z0-9._%-]+@[a-zA-Z0-9.-]+\.[a-zA-Z]{2,})$/;
       if (!emailRegex.test(user.email)) {
-        setError("invalid email id");
+        setError("Invalid email format");
         return;
       }
 
@@ -45,23 +83,23 @@ const Login = () => {
 
       if (res?.error) {
         console.log(res);
-        setError("error");
+        setError("Authentication error");
       }
 
       setError("");
       router.push("/dashboard");
     } catch (error) {
-      console.log(error);
-      setError("");
+      console.error('Login error:', error);
+      setError("Error occurred during login");
     } finally {
       setLoading(false);
-
       setUser({
         email: "",
         password: "",
       });
     }
   };
+
   return (
     <div
       className="min-h-screen"
@@ -123,6 +161,7 @@ const Login = () => {
                 </div>
 
                 <div className="grid place-items-center w-full mx-auto pt-7">
+                {error && <p className="py-6 text-lg">{error}</p>}
                   <button
                     type="submit"
                     className="bg-[#5D7DF3] text-white text-lg w-full px-8 py-3 rounded-md uppercase font-semibold"
@@ -130,17 +169,25 @@ const Login = () => {
                     Login
                   </button>
                 </div>
+
                 <div className="flex justify-center w-full items-center gap-3 py-3">
                   <div className="border-b border-gray-800 py-2 w-full px-6" />
                   <div className="mt-3">or</div>
                   <div className="border-b border-gray-800 py-2 w-full px-6" />
                 </div>
                 <div className="flex justify-center items-center w-full gap-8 pb-8">
-
-                  <div onClick={()=>signIn("google")} className="rounded px-6 py-2 shadow cursor-pointer bg-gray-50 grid place-items-center mx-auto mb-4">
+                  <div
+                    onClick={handleResetPassword} // Added onClick event for resetting password
+                    className="rounded px-6 py-2 shadow cursor-pointer bg-gray-50 grid place-items-center mx-auto mb-4"
+                  >
+                    Reset Password
+                  </div>
+                  <div
+                    onClick={() => signIn("google")}
+                    className="rounded px-6 py-2 shadow cursor-pointer bg-gray-50 grid place-items-center mx-auto mb-4"
+                  >
                     <Image src={google} alt="bg" width={100} height={100} />
                   </div>{" "}
-
                 </div>
                 <div className="text-lg text-slate-900 font-medium">
                   <span>Don't have an account?</span>
