@@ -1,15 +1,12 @@
-import { connect } from "@/utils/config/dbConfig";
-import User from "@/utils/models/auth";
-import bcryptjs from "bcryptjs";
+// app/api/register/route.ts
 import { NextResponse, NextRequest } from "next/server";
-
-connect();
+import { createUser, findUserByEmail } from "../../../utils/models/auth";
+import bcryptjs from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
     const { name, email, password } = await request.json();
-
-    const user = await User.findOne({ email });
+    const user = await findUserByEmail(email);
 
     if (user) {
       return NextResponse.json(
@@ -21,18 +18,17 @@ export async function POST(request: NextRequest) {
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(password, salt);
 
-    const newUser = new User({
+    const newUser = {
       name,
       email,
       password: hashedPassword,
-    });
+    };
 
-    const savedUser = await newUser.save();
+    await createUser(newUser);
 
     return NextResponse.json({
       message: "User created successfully",
       success: true,
-      savedUser,
     });
   } catch (error: any) {
     return NextResponse.json({ error: error.message }, { status: 500 });

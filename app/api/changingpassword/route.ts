@@ -1,31 +1,28 @@
-import { connect } from "@/utils/config/dbConfig";
-import User from "@/utils/models/auth";
-import bcryptjs from 'bcryptjs';
-import crypto from 'crypto';
+// app/api/change-password/route.ts
 import { NextResponse, NextRequest } from "next/server";
-import { TransactionalEmailsApi, TransactionalEmailsApiApiKeys } from '@sendinblue/client';
-
-connect();
+import { updateUserByResetToken } from "../../../utils/models/auth";
+import bcryptjs from "bcryptjs";
 
 export async function POST(request: NextRequest) {
   try {
-    const { newPassword,resetToken } = await request.json();
+    const { newPassword, resetToken } = await request.json();
     const salt = await bcryptjs.genSalt(10);
     const hashedPassword = await bcryptjs.hash(newPassword, salt);
-    
-    const userdb = await User.findOneAndUpdate(
-      { resetToken },
-      { password:hashedPassword }, 
-      { new: true }
-    );
 
-    if (!userdb) {
-      console.log('Error updating reset token');
-      return NextResponse.json({ error: 'Error updating reset token' });
+    const user = await updateUserByResetToken(resetToken, {
+      password: hashedPassword,
+      resetToken: null,
+      resetTokenExpiry: null,
+    });
+
+    if (!user) {
+      console.log("Error updating password");
+      return NextResponse.json({ error: "Error updating password" }, { status: 400 });
     }
-      return NextResponse.json({ error: ' saving password done',userdb });
-    
+
+    return NextResponse.json({ message: "Password updated successfully" });
   } catch (error) {
-    return NextResponse.json({ error: 'Error resetting password' });
+    console.log(error);
+    return NextResponse.json({ error: "Error updating password" }, { status: 500 });
   }
 }

@@ -48,8 +48,9 @@ const ResetPasswordPage = () => {
     }
 
     // Password validation
-    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&])[A-Za-z\d@$!%*?&]{8,}$/;
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!,%*?&])[A-Za-z\d@$!,%*?&,]{8,}$/;
     if (!passwordRegex.test(password)) {
+      console.log(password)
       setError("Password must be at least 8 characters long, contain an uppercase letter, a lowercase letter, a digit, and a special character");
       return;
     }
@@ -58,6 +59,7 @@ const ResetPasswordPage = () => {
       const response = await axios.post("/api/changingpassword", { resetToken: resetToken, newPassword: password });
 
       if (response.status === 200) {
+        setError("");
         setSuccess("Password reset successfully");
         setTimeout(() => {
           router.push('/'); 

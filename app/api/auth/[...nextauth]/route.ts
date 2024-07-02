@@ -1,36 +1,43 @@
-import { connect } from "@/utils/config/dbConfig";
-import User from "@/utils/models/auth";
 import NextAuth, { NextAuthOptions } from "next-auth";
 import CredentialsProvider from "next-auth/providers/credentials";
 import GoogleProvider from "next-auth/providers/google";
-import bycrptjs from "bcryptjs";
+import bcrypt from "bcryptjs";
+import { findUserByEmail, createUser } from "../../../../utils/models/auth";
+import { NextApiRequest, NextApiResponse } from "next";
+import { User as UserType } from "../../../../utils/types/types"; // Ensure to import the User type
 
 export const authOptions: NextAuthOptions = {
   providers: [
     CredentialsProvider({
       name: "credentials",
-      credentials: {},
-      async authorize(credentials) {
+      credentials: {
+        email: { label: "Email", type: "email", placeholder: "email@example.com" },
+        password: { label: "Password", type: "password" }
+      },
+      async authorize(credentials, req) {
         const { email, password } = credentials as {
           email: string;
           password: string;
         };
         try {
-          await connect();
-          const user = await User.findOne({ email });
+          const user = await findUserByEmail(email);
           if (!user) {
             return null;
           }
-          const passwordsMatch = await bycrptjs.compare(
-            password,
-            user.password
-          );
+          const passwordsMatch = await bcrypt.compare(password, user.password!);
           if (!passwordsMatch) {
             return null;
           }
-          return user;
+          // Map your user document to the User type
+          const userForAuth: UserType = {
+            id: user._id.toString(), // Ensure to include id property
+            email: user.email,
+            name: user.name,
+          };
+          return userForAuth;
         } catch (error) {
           console.log("Error:", error);
+          return null;
         }
       },
     }),
@@ -45,45 +52,42 @@ export const authOptions: NextAuthOptions = {
   },
 
   callbacks: {
-    async signIn({ user, account }: { user: any; account: any }) {
-      if (account.provider === "google") {
+    async signIn({ user, account, profile }) {
+      if (account && account.provider === "google") {
         try {
-          const { name, email } = user;
-          await connect();
-          const ifUserExists = await User.findOne({ email });
-          if (ifUserExists) {
-            return user;
+          const email = user?.email || profile?.email || "no-email@example.com";
+          const name = user?.name || profile?.name || "Anonymous";
+          if (email) {
+            const existingUser = await findUserByEmail(email);
+            if (!existingUser) {
+              const newUser = await createUser({ name: name, email });
+              user.id = newUser.insertedId.toString();
+            } else {
+              user.id = existingUser._id.toString();
+            }
           }
-          const newUser = new User({
-            name: name,
-            email: email,
-          });
-          const res = await newUser.save();
-          if (res.status === 200 || res.status === 201) {
-            console.log(res)
-            return user;
-          }
-
+          return true;
         } catch (err) {
           console.log(err);
+          return false;
         }
       }
-      return user;
+      return true;
     },
     async jwt({ token, user }) {
       if (user) {
-        token.email = user.email;
-        token.name = user.name;
+        token.email = user.email || "no-email@example.com";
+        token.name = user.name || "Anonymous";
+        token.id = user.id; // Ensure token has id
       }
       return token;
     },
-
-    async session({ session, token }: { session: any; token: any }) {
+    async session({ session, token }) {
       if (session.user) {
-        session.user.email = token.email;
-        session.user.name = token.name;
+        session.user.email = token.email || "no-email@example.com";
+        session.user.name = token.name || "Anonymous";
+        session.user.id = token.id; // Ensure session has id
       }
-      console.log(session);
       return session;
     },
   },
@@ -94,4 +98,5 @@ export const authOptions: NextAuthOptions = {
 };
 
 const handler = NextAuth(authOptions);
+
 export { handler as GET, handler as POST };

@@ -1,33 +1,45 @@
-import mongoose, { Document, Schema } from "mongoose";
+// models/User.ts
+import { ObjectId } from "mongodb";
+import clientPromise from "../lib/mongodb";
 
-export interface UserDocument extends Document {
+export interface UserDocument {
+  _id?: ObjectId;
   name: string;
   email: string;
-  password: string;
-  resetToken: string | null;
-  resetTokenExpiry: Date | null;
+  password?: string;
+  resetToken?: string | null;
+  resetTokenExpiry?: Date | null;
 }
 
-const userSchema = new mongoose.Schema<UserDocument>(
-  {
-    name: {
-      type: String,
-      required: [true, "Please provide your full name"],
-    },
-    email: {
-      type: String,
-      required: [true, "Please provide a valid email"],
-      unique: true,
-    },
-    password: {
-      type: String,
-    },
-    resetToken: String,
-    resetTokenExpiry: Date,
-  },
-  { timestamps: true }
-);
+async function getUserCollection() {
+  const client = await clientPromise;
+  return client.db().collection<UserDocument>("users");
+}
 
-const User = mongoose.models.user || mongoose.model<UserDocument>("user", userSchema);
+export async function findUserByEmail(email: string) {
+  const users = await getUserCollection();
+  return users.findOne({ email });
+}
 
-export default User;
+export async function createUser(user: UserDocument) {
+  const users = await getUserCollection();
+  return users.insertOne(user);
+}
+
+export async function updateUser(email: string, updateFields: Partial<UserDocument>) {
+  const users = await getUserCollection();
+  return users.updateOne({ email }, { $set: updateFields });
+}
+
+export async function findUserByResetToken(resetToken: string) {
+  const users = await getUserCollection();
+  return users.findOne({
+    resetToken,
+    resetTokenExpiry: { $gte: new Date() },
+  });
+}
+
+export async function updateUserByResetToken(resetToken: string, updateFields: Partial<UserDocument>) {
+  const users = await getUserCollection();
+  return users.updateOne({ resetToken }, { $set: updateFields });
+}
